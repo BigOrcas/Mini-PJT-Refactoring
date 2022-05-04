@@ -57,9 +57,7 @@ public class ProductController {
 		System.out.println(this.getClass());
 	}
 
-	// ==> classpath:config/common.properties , classpath:config/commonservice.xml
-	// 참조 할것
-	// ==> 아래의 두개를 주석을 풀어 의미를 확인 할것
+
 	@Value("#{commonProperties['pageUnit']}")
 	// @Value("#{commonProperties['pageUnit'] ?: 3}")
 	int pageUnit;
@@ -68,8 +66,7 @@ public class ProductController {
 	// @Value("#{commonProperties['pageSize'] ?: 2}")
 	int pageSize;
 
-	//@RequestMapping("/addProductView.do")
-	//public String addProductView() throws Exception {
+
 	@RequestMapping( value="addProduct	", method=RequestMethod.GET )
 	public String addProduct() throws Exception {
 
@@ -78,7 +75,7 @@ public class ProductController {
 		return "redirect:/product/addProductView.jsp";
 	}
 
-	//@RequestMapping("/addProduct.do")
+
 	
 
 	@RequestMapping( value="addProduct", method=RequestMethod.POST )
@@ -118,48 +115,40 @@ public class ProductController {
 		return "forward:/product/readProduct.jsp";
 	}
 
-	//@RequestMapping("/getProduct.do")
-	@RequestMapping( value="getProduct", method=RequestMethod.GET)
-	public String getProduct(@RequestParam("prodNo") int prodNo,@RequestParam("menu") String menu, Model model,
-			@CookieValue(value="history", required=false) Cookie cookie,HttpServletResponse response
-			
-			
-			) throws Exception {
+
+	@RequestMapping("getProduct")
+	public ModelAndView getProduct( @RequestParam("prodNo") int prodNo ,
+		@CookieValue(value="history", required=false) Cookie cookie,
+		HttpServletResponse response) throws Exception {
+		//이름이 history인 쿠키를 가져와서 cookie로 반환하는데 required는 cookie를 가져오는게 필수냐는 속성이다.
+		//true를 하게되면 cookie가 없는 조건에서는 error를 일으킨다.
 		
 		
+	
 		Product product = productService.getProduct(prodNo);
-		model.addAttribute("product", product);
-		String histroy = "/"+prodNo; 
+		
+		String fileName = product.getFileName();
+		String prodName = product.getProdName().replace(" ", "_");
+		String history = prodNo+"&"+fileName+"&"+prodName;
 		
 		if(cookie != null) {
-			Cookie cook = new Cookie("history",histroy);
-			
-			cook.setPath("/");
-			cook.setMaxAge(3600);
-			response.addCookie(cook);
-			}else{		
-				
-				
-				String str = cookie.getValue()+ histroy;						
-				Cookie cook2 = new Cookie("history",str);			
-				cook2.setPath("/");			
-				response.addCookie(cook2);	
-		}			
-
+			cookie.setValue(cookie.getValue()+"/"+history); //쿠키있다면 set
+		}else {
+			cookie = new Cookie("history", history); //쿠키가없다면 생성
+		}
+		cookie.setPath("/"); //쿠키를 다시 불러올때는 내가 불러올 경로를 설정해준다 
+		//  /로 시작하는 서버로 쿠키를 불러온다  http://localhost:8080/product/getProduct
+		cookie.setMaxAge(3600);  //쿠키의 생존기간
+		response.addCookie(cookie);			//클라이언트 서버에 심기위해서 response에 넣어준다			
 		
-		
-		
-		
-		String image = product.getFileName();
-		
-		
-		
-		
-
-		return "forward:/product/getProduct.jsp?menu="+menu;
+		ModelAndView modelAndView = new ModelAndView();
+		modelAndView.setViewName("forward:/product/getProduct.jsp");
+		modelAndView.addObject("product", product);
+		return modelAndView;
 	}
 
-	//@RequestMapping("/updateProductView.do")
+
+	
 	@RequestMapping( value="updateProduct", method=RequestMethod.GET )
 	public String updateProduct(@RequestParam("prodNo") int prodNo, Model model
 			) throws Exception {
@@ -174,7 +163,7 @@ public class ProductController {
 		return "forward:/product/updateProductView.jsp";
 	}
 
-	//@RequestMapping("/updateProduct.do")
+	
 	@RequestMapping( value="updateProduct", method=RequestMethod.POST )
 	public String updateProduct(@ModelAttribute("product") Product product, Model model, HttpSession session,
 			@RequestParam("uploadfile") MultipartFile[] fileArray  )
@@ -229,7 +218,7 @@ public class ProductController {
 
 		Page resultPage = new Page(search.getCurrentPage(), ((Integer) map.get("totalCount")).intValue(), pageUnit,
 				pageSize);
-		System.out.println(resultPage);
+		
 
 		HttpSession session=request.getSession();
 		User user=(User)session.getAttribute("user");
